@@ -1,0 +1,7 @@
+aiohttp
+websockets
+nats-py
+asyncpg
+python-dotenv
+pandas
+numpy
