@@ -23,7 +23,7 @@ class Database:
             id SERIAL PRIMARY KEY,
             timestamp TIMESTAMPTZ DEFAULT NOW(),
             symbol VARCHAR(20),
-            side VARCHAR(4),
+            side VARCHAR(20),
             price DECIMAL,
             amount DECIMAL,
             mode VARCHAR(10),

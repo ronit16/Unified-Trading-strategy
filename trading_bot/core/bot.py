@@ -8,6 +8,7 @@ from trading_bot.config import cfg
 from trading_bot.core.database import Database
 from trading_bot.core.kraken_api import KrakenREST, KrakenWS
 from trading_bot.core.execution import ExecutionEngine
+from trading_bot.core.results import Results
 from trading_bot.strategies import get_strategy
 
 logger = logging.getLogger(__name__)
@@ -76,12 +77,20 @@ class Bot:
         
         # Convert Kraken candle to our format
         # Kraken v2 OHLC: { 'close': 100.0, 'time': 123456789.0, ... }
+        if 'end' not in data:
+            logger.error(f"Malformed candle received, missing timestamp: {data}")
+            return
+            
         candle = {
-            'timestamp': data.get('end', time.time()), # V2 uses 'end' for close time
+            'timestamp': data['end'],
             'close': float(data.get('close', 0))
         }
 
-        signal = self.strategy.process_candle(candle)
+        # Check for stop-loss or take-profit exits
+        await self.execution.check_exit_conditions(candle['close'], candle['timestamp'])
+        
+        # Process strategy signal
+        signal = self.strategy.process_candle(candle, self.execution.position_type)
         if signal:
             await self.execution.execute_order(signal, candle['close'], candle['timestamp'])
 
@@ -102,15 +111,26 @@ class Bot:
         for index, row in df.iterrows():
             candle = {'timestamp': row['timestamp'], 'close': row['close']}
             
-            # Direct calls (Simulating the NATS pipeline speed is unnecessary for backtest logic)
-            signal = self.strategy.process_candle(candle)
+            # Check for stop-loss or take-profit exits
+            await self.execution.check_exit_conditions(candle['close'], candle['timestamp'])
+            
+            # Process strategy signal
+            signal = self.strategy.process_candle(candle, self.execution.position_type)
             
             if signal:
                 # We use the async execution engine, so we must await
                 await self.execution.execute_order(signal, row['close'], row['timestamp'])
+            
+            self.execution.get_portfolio_value(row['close'], row['timestamp'])
         
-        final = self.execution.get_portfolio_value(df.iloc[-1]['close'])
-        logger.info(f"Backtest Finished. Final Value: ${final:.2f}")
+        # Generate and display results
+        results = Results(self.execution.trades, self.execution.portfolio_history, cfg.CAPITAL)
+        metrics = results.calculate_metrics()
+        results.display_results(metrics)
+        results.generate_equity_curve()
+        
+        final_value = self.execution.get_portfolio_value(df.iloc[-1]['close'], df.iloc[-1]['timestamp'])
+        logger.info(f"Backtest Finished. Final Value: ${final_value:.2f}")
 
     async def shutdown(self):
         await self.db.close()

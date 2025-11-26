@@ -9,9 +9,9 @@ class BaseStrategy(ABC):
         self.prices = []
 
     @abstractmethod
-    def process_candle(self, candle):
+    def process_candle(self, candle, position):
         """
-        Input: candle dict {'timestamp': int, 'close': float, ...}
-        Output: 'BUY', 'SELL', or None
+        Input: candle dict {'timestamp': int, 'close': float, ...}, position string ('long', 'short', or None)
+        Output: 'BUY', 'SELL', 'SELL_SHORT', 'COVER_SHORT', or None
         """
         pass
