@@ -57,7 +57,16 @@ def lint_python_file(filename: str) -> str:
 # 1. StrategyCoder Agent
 strategy_coder = LlmAgent(
     name="StrategyCoder",
-    system_instructions="""You are a Python programmer... (instructions remain the same)""",
+    system_instructions="""You are a Python programmer specializing in trading algorithms.
+    1.  Read the structured strategy definition from `session['strategy_json']`.
+    2.  Read the Jinja2 template from `templates/strategy_template.txt` using the `read_template` tool.
+    3.  Your task is to populate the template with the logic from the strategy definition.
+        - The `strategy_name` should be a valid Python class name (e.g., `GoldenCrossBtc`).
+        - The `indicator_calculations` should be the Python code to calculate the required indicators (e.g., `df['SMA_50'] = df['close'].rolling(window=50).mean()`).
+        - The `entry_logic` and `exit_logic` should be valid Python boolean expressions based on the calculated indicators.
+    4.  Generate the complete, final Python code as a string.
+    5.  Save the code to a file named after the strategy (e.g., `golden_cross_btc.py`) using the `write_code_to_file` tool.
+    6.  **Crucially, you must save the final filepath to the session state by setting `session['strategy_filepath']`**.""",
     tools=[
         FunctionTool(read_template),
         FunctionTool(write_code_to_file)
@@ -67,7 +76,10 @@ strategy_coder = LlmAgent(
 # 2. LintingAgent
 linting_agent = LlmAgent(
     name="LintingAgent",
-    system_instructions="""You are a code quality analyst... (instructions remain the same)""",
+    system_instructions="""You are a code quality analyst.
+    1.  Read the filepath of the generated strategy code from `session['strategy_filepath']`.
+    2.  Run the linter on this file using the `lint_python_file` tool.
+    3.  If the result is not 'OK', you must analyze the errors and suggest fixes to the `StrategyCoder` in the next step. For now, just report the findings.""",
     tools=[FunctionTool(lint_python_file)]
 )
 
@@ -83,14 +95,23 @@ code_and_lint_sequence = SequentialAgent(
 # 3. ConfigManager Agent
 config_manager = LlmAgent(
     name="ConfigManager",
-    system_instructions="""You are a configuration specialist... (instructions remain the same)""",
+    system_instructions="""You are a configuration specialist.
+    1.  Read the strategy definition from `session['strategy_json']`.
+    2.  Create a Python configuration file (e.g., `config.py`) containing the strategy's parameters, such as indicator settings, stop-loss, and take-profit levels.
+    3.  Save the file using the `write_code_to_file` tool.
+    4.  **Save the path to the generated config file in the session state as `session['config_filepath']`**.""",
     tools=[FunctionTool(write_code_to_file)]
 )
 
 # 4. InfraArchitect Agent
 infra_architect = LlmAgent(
     name="InfraArchitect",
-    system_instructions="""You are an infrastructure expert... (instructions remain the same)""",
+    system_instructions="""You are an infrastructure expert.
+    1.  Read the strategy definition from `session['strategy_json']`.
+    2.  Generate a `Dockerfile` suitable for running the Python trading strategy.
+    3.  Generate a `docker-compose.yml` file to orchestrate the strategy container.
+    4.  Save the files using the `write_code_to_file` tool.
+    5.  **Save the path to the Dockerfile in the session state as `session['dockerfile_path']`**.""",
     tools=[FunctionTool(write_code_to_file)]
 )
 
@@ -99,8 +120,8 @@ infra_architect = LlmAgent(
 code_engineer = ParallelAgent(
     name="CodeEngineer",
     agents=[
-        code_and_lint_sequence, # Run the coding and linting in sequence
-        config_manager,         # Run config and infra in parallel
+        code_and_lint_sequence,
+        config_manager,
         infra_architect
     ]
 )
