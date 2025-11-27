@@ -5,3 +5,12 @@ asyncpg
 python-dotenv
 pandas
 numpy
+google-cloud-aiplatform
+google-generativeai
+beautifulsoup4
+requests
+python-decouple
+Jinja2
+docker
+pylint
+flake8

@@ -1,0 +1,22 @@
+import pandas as pd
+from trading_bot.strategies.base_strategy import BaseStrategy
+
+class {{ strategy_name }}(BaseStrategy):
+    def __init__(self, indicators: list):
+        super().__init__(indicators)
+
+    def process_candle(self, candle: dict, position_type: str) -> dict:
+        """
+        Processes a single candle and returns a trading signal.
+        """
+        # {{ indicator_calculations }}
+
+        # Entry logic
+        if {{ entry_logic }}:
+            return self.generate_signal("BUY", position_type)
+
+        # Exit logic
+        if {{ exit_logic }}:
+            return self.generate_signal("SELL", position_type)
+
+        return {}
