@@ -1,7 +1,7 @@
 import pandas as pd
 from .base import BaseStrategy
 
-class RSIStrategy(BaseStrategy):
+class Rsi(BaseStrategy):
     """
     RSI Mean Reversion Strategy with Short Selling.
     """

@@ -1,5 +1,5 @@
-from adk.agents import LlmAgent
-from adk.tools import FunctionTool
+from google.adk.agents import LlmAgent
+from google.adk.tools import FunctionTool
 import docker
 import logging
 from .db_tools import db
@@ -36,11 +36,11 @@ async def deploy_strategy_container(strategy_id: str, dockerfile_path: str, buil
 
 deployment_manager = LlmAgent(
     name="DeploymentManager",
-    system_instructions="""You are a deployment specialist.
-    1.  Read the strategy ID from `session['strategy_id']`.
-    2.  Read the Dockerfile path from `session['dockerfile_path']`.
-    3.  Read the build context path from `session['build_context']`.
+    instruction="""You are a deployment specialist.
+    1.  Read the strategy ID from `session.get('strategy_id')`.
+    2.  Read the Dockerfile path from `session.get('dockerfile_path')`.
+    3.  Read the build context path from `session.get('build_context')`.
     4.  Deploy the strategy as a live trading container using the `deploy_strategy_container` tool.
-    5.  **Save the container ID to the session state as `session['container_id']`**.""",
+    5.  **Save the container ID to the session state as `session.set('container_id', ...)`**.""",
     tools=[FunctionTool(deploy_strategy_container)]
 )

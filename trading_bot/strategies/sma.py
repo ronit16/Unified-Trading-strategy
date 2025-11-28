@@ -1,6 +1,6 @@
 from .base import BaseStrategy
 
-class SMAStrategy(BaseStrategy):
+class Sma(BaseStrategy):
     """
     Golden Cross Strategy with Short Selling.
     """

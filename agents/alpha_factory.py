@@ -1,4 +1,4 @@
-from adk.agents import SequentialAgent
+from google.adk.agents import SequentialAgent
 from .strategy_researcher import strategy_researcher
 from .code_engineer import code_engineer
 from .strategy_optimizer import strategy_optimizer
@@ -8,7 +8,7 @@ from .deployment_manager import deployment_manager
 
 alpha_factory = SequentialAgent(
     name="AlphaFactory",
-    agents=[
+    sub_agents=[
         strategy_researcher,
         code_engineer,
         strategy_optimizer,

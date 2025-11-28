@@ -3,7 +3,7 @@ import logging
 import argparse
 import json
 from decouple import config
-from adk.api import Session
+from google.adk.sessions import Session
 from agents.alpha_factory import alpha_factory
 from agents.monitoring_agent import monitoring_agent
 from agents.db_tools import db
@@ -24,11 +24,11 @@ def setup_logging():
 async def run_alpha_factory():
     """Wrapper coroutine to run the Alpha Factory task."""
     logging.info("--- Starting Alpha Factory ---")
-    session = Session()
+    session = Session(id="123", appName="trading_bot", userId="user")
     try:
         initial_input = "Find me a Bitcoin scalping strategy"
         # Provide a path to sample data for the backtesting phase
-        session['csv_datapath'] = 'trading_bot/data/historical_btc_data.csv'
+        session.set('csv_datapath', 'trading_bot/data/historical_btc_data.csv')
         await alpha_factory.run(session, initial_input)
         logging.info("--- Alpha Factory Run Complete ---")
     except Exception as e:
@@ -37,9 +37,9 @@ async def run_alpha_factory():
 async def run_monitoring_agent():
     """Wrapper coroutine to run the Monitoring Agent service."""
     logging.info("--- Starting Monitoring Agent ---")
-    session = Session()
+    session = Session(id="123", appName="trading_bot", userId="user")
     try:
-        await monitoring_agent.run(session)
+        await monitoring_agent._run_agent(session)
     except Exception as e:
         logging.error(f"Monitoring Agent failed: {e}", exc_info=True)
 

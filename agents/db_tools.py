@@ -1,4 +1,4 @@
-from adk.tools import FunctionTool
+from google.adk.tools import FunctionTool
 from trading_bot.core.database import Database
 from decouple import config
 

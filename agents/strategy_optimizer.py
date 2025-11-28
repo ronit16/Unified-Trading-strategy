@@ -1,5 +1,5 @@
-from adk.agents import LoopAgent, LlmAgent
-from adk.tools import FunctionTool
+from google.adk.agents import LoopAgent, LlmAgent
+from google.adk.tools import FunctionTool
 import subprocess
 import json
 from .db_tools import save_backtest_results_tool
@@ -34,25 +34,25 @@ def run_backtest_script(strategy_filepath: str, config_filepath: str, csv_datapa
 # 1. BacktestRunner Agent
 backtest_runner = LlmAgent(
     name="BacktestRunner",
-    system_instructions="""Your job is to run the backtest for the given strategy.
-    1.  Read the strategy filepath from `session['strategy_filepath']`.
-    2.  Read the config filepath from `session['config_filepath']`.
-    3.  Read the path to the historical data CSV from `session['csv_datapath']`.
+    instruction="""Your job is to run the backtest for the given strategy.
+    1.  Read the strategy filepath from `session.get('strategy_filepath')`.
+    2.  Read the config filepath from `session.get('config_filepath')`.
+    3.  Read the path to the historical data CSV from `session.get('csv_datapath')`.
     4.  Execute the backtest using the `run_backtest_script` tool.
-    5.  **Save the JSON results of the backtest to the session state as `session['backtest_results_json']`**.""",
+    5.  **Save the JSON results of the backtest to the session state as `session.set('backtest_results_json', ...)`**.""",
     tools=[FunctionTool(run_backtest_script)]
 )
 
 # 2. ResultAnalyzer Agent
 result_analyzer = LlmAgent(
     name="ResultAnalyzer",
-    system_instructions="""You are a quantitative analyst. Your task is to interpret backtest results.
-    1.  Read the backtest results JSON from `session['backtest_results_json']`.
+    instruction="""You are a quantitative analyst. Your task is to interpret backtest results.
+    1.  Read the backtest results JSON from `session.get('backtest_results_json')`.
     2.  The results contain metrics like 'sharpe_ratio', 'max_drawdown', and 'final_equity'.
     3.  Your success criterion is a `sharpe_ratio` greater than 1.5.
-    4.  If the criterion is met, you must set `session['optimization_complete'] = True` to exit the loop.
+    4.  If the criterion is met, you must set `session.set('optimization_complete', True)` to exit the loop.
     5.  If the criterion is NOT met, you must propose a single, specific parameter change to improve performance.
-    6.  **You must save your suggestion as a JSON object to `session['new_params']`**. For example: `{'stop_loss_pct': 3.0}`.
+    6.  **You must save your suggestion as a JSON object to `session.set('new_params', ...)`**. For example: `{'stop_loss_pct': 3.0}`.
     7.  Finally, you must always save the results to the database using the `save_backtest_results_tool`.""",
     tools=[save_backtest_results_tool]
 )
@@ -60,10 +60,10 @@ result_analyzer = LlmAgent(
 # 3. ParameterUpdater Agent
 parameter_updater = LlmAgent(
     name="ParameterUpdater",
-    system_instructions="""You are a configuration engineer.
+    instruction="""You are a configuration engineer.
     1.  Check if `session.get('optimization_complete', False)` is True. If it is, your job is done and you should do nothing.
-    2.  If it is not complete, read the new parameters from `session['new_params']`.
-    3.  Read the config filepath from `session['config_filepath']`.
+    2.  If it is not complete, read the new parameters from `session.get('new_params')`.
+    3.  Read the config filepath from `session.get('config_filepath')`.
     4.  Load the existing config file as a string, update the specific parameter value, and write the modified string back to the config file using the `write_code_to_file` tool.""",
     tools=[FunctionTool(write_code_to_file)]
 )
@@ -72,7 +72,7 @@ parameter_updater = LlmAgent(
 
 strategy_optimizer = LoopAgent(
     name="StrategyOptimizer",
-    agents=[
+    sub_agents=[
         backtest_runner,
         result_analyzer,
         parameter_updater

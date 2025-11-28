@@ -1,11 +1,14 @@
-from adk.agents import CustomAgent
-from adk.tools import FunctionTool
+from google.adk.agents import BaseAgent
+from google.adk.tools import FunctionTool
+from pydantic import PrivateAttr
+from typing import Any, Dict
 import nats
 import docker
 import logging
 import asyncio
 import json
 from decouple import config
+from pyparsing import Dict
 from .db_tools import db
 
 logger = logging.getLogger(__name__)
@@ -35,49 +38,53 @@ async def send_alert(message: str) -> str:
 
 # --- Agent Definition ---
 
-class MonitoringAgent(CustomAgent):
+class MonitoringAgent(BaseAgent):
     """
     A long-running agent that monitors live trading strategies via NATS.
     """
+    # 2. DECLARE FIELDS HERE using PrivateAttr
+    # This tells Pydantic: "Let me store this data, but don't validate it or save it to JSON."
+    _nc: Any = PrivateAttr(default=None)
+    _strategy_to_container: Dict = PrivateAttr(default_factory=dict)
+
     def __init__(self):
         super().__init__(name="MonitoringAgent")
-        self.nc = None
-        self.strategy_to_container = {}
+        # You no longer need to set self.nc = None here; PrivateAttr handles the default.
 
     async def _run_agent(self, session):
-        """The main execution logic for the agent."""
         logger.info("Starting MonitoringAgent...")
         await self.load_live_strategies()
         await self.connect_to_nats()
 
-        await self.nc.subscribe("telemetry.live.*", cb=self.on_telemetry_message)
+        # Update variable access to use the underscore version
+        await self._nc.subscribe("telemetry.live.*", cb=self.on_telemetry_message)
 
         while True:
             await asyncio.sleep(1)
 
     async def load_live_strategies(self):
-        """Loads the mapping of live strategies from the database."""
-        self.strategy_to_container = await db.get_live_strategies()
-        logger.info(f"Loaded {len(self.strategy_to_container)} live strategies from the database.")
+        # Update variable access
+        self._strategy_to_container = await db.get_live_strategies()
+        logger.info(f"Loaded {len(self._strategy_to_container)} live strategies.")
 
     async def connect_to_nats(self):
-        """Connects to the NATS server."""
         try:
-            self.nc = await nats.connect(config('NATS_URL'))
+            # Update variable access
+            self._nc = await nats.connect(config('NATS_URL'))
             logger.info("MonitoringAgent connected to NATS.")
         except Exception as e:
             logger.error(f"MonitoringAgent failed to connect to NATS: {e}")
             raise
 
     async def on_telemetry_message(self, msg):
-        """Callback for processing messages from trading bots."""
         subject = msg.subject
         strategy_id = subject.split('.')[-1]
         data = json.loads(msg.data.decode())
 
         logger.info(f"Received telemetry for strategy {strategy_id}: {data}")
 
-        container_id = self.strategy_to_container.get(strategy_id)
+        # Update variable access
+        container_id = self._strategy_to_container.get(strategy_id)
         if not container_id:
             logger.warning(f"Received telemetry for unknown strategy {strategy_id}")
             return

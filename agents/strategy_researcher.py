@@ -1,5 +1,5 @@
-from adk.agents import LlmAgent
-from adk.tools import FunctionTool
+from google.adk.agents import LlmAgent
+from google.adk.tools import FunctionTool
 import requests
 from bs4 import BeautifulSoup
 from .db_tools import save_strategy_tool
@@ -34,11 +34,11 @@ def google_search(query: str) -> str:
 # Agent definition
 strategy_researcher = LlmAgent(
     name="StrategyResearcher",
-    system_instructions="""You are a quantitative researcher. Your goal is to find trading strategies for a given asset class.
+    instruction="""You are a quantitative researcher. Your goal is to find trading strategies for a given asset class.
     1.  Use your tools to search for and scrape information about trading strategies from the provided URLs.
     2.  Analyze the information to extract the strategy's logic, indicators, and parameters.
     3.  Format the extracted information into a structured JSON object.
-    4.  **Crucially, you must save the final JSON object to the session state by setting `session['strategy_json']`**.
+    4.  **Crucially, you must save the final JSON object to the session state by setting `session.set('strategy_json', ...)`**.
     5.  You must also save the strategy to the database using the `save_strategy_tool`.""",
     tools=[
         FunctionTool(web_scraper),

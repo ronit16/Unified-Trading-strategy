@@ -14,7 +14,7 @@ Before you begin, ensure you have the following installed:
 - [Python 3.10+](https://www.python.org/downloads/)
 - An active Google Cloud Platform (GCP) project with the AI Platform APIs enabled.
 
-## Setup Instructions
+## Setup instruction
 
 Follow these steps to get the application running.
 
